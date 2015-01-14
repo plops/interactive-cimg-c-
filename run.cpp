@@ -44,7 +44,13 @@ extern "C" int r_step(struct run_state *state)
 
   CImg<unsigned char> a(512,512,1,3);
   a.fill(32).noise(128).blur(8);
-  
+  const unsigned char white[] = {255,255,255};
+  char s[100];
+  snprintf(s,100,"hello %d",state->count);
+  a.draw_text(80,80,s,white);
+
+  state->count++;
+
   state->disp->assign(a);
   state->disp->wait();
   //  CImg<float>=
