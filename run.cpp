@@ -26,19 +26,27 @@ extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
 
-  state->img=new CImg<float>(300,200,1,3);
-  state->img->fill(32);
-  state->img->noise(128);
-  state->img->blur(8);
+  state->img = new CImg<unsigned char>(512,512,1,3);
+  state->img->fill(32).noise(128).blur(8);
   const unsigned char white[] = {255,255,255};
   state->img->draw_text(80,80,"Hello World",white);
-  state->img->display();
-
+  
+  state->disp=new CImgDisplay(512,512,"Hello");
+  
 }
 
 extern "C" int r_step(struct run_state *state)
 {
+  if(state->disp->is_closed())
+    return 0;
+  if(state->disp->is_resized())
+    state->disp->resize();
+
+  CImg<unsigned char> a(512,512,1,3);
+  a.fill(32).noise(128).blur(8);
   
+  state->disp->assign(a);
+  state->disp->wait();
   //  CImg<float>=
 
   //CImgList<float> F = img.get_FFT();
@@ -59,6 +67,7 @@ extern "C" int r_step(struct run_state *state)
 
 extern "C" void r_unload(struct run_state *state)
 {
+  delete state->disp;
   delete state->img;
 }
 
