@@ -40,9 +40,13 @@ extern "C" void r_reload(struct run_state *state)
 
   state->img = new CImg<float>(128,128);
   CImg<float> &im = state->img[0]; 
-  int x0=im.dimx()/2,y0=im.dimy()/2,z0=im.dimz()/2;
+  float
+    hx0=float(im.width()/2),
+    hy0=float(im.height()/2),
+    hz0=float(im.depth()/2);
   cimg_forXYZ(im,x,y,z){
-    im(x,y,z) = sinc(sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0)+(z-z0)*(z-z0)));
+    float a=x-hx0,b=y-hy0,c=z-hz0;
+    im(x,y,z) = sinc(sqrt(a*a+b*b+c*c));
   }
 
   
@@ -69,7 +73,7 @@ extern "C" int r_step(struct run_state *state)
 
   state->count++;
 
-  a.display(state->disp[0]);
+  state->img[0].get_shared_slice(state->count%state->img[0].depth()).display(state->disp[0]);
   state->disp->wait(20);
   //  CImg<float>=
 
