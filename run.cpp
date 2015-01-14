@@ -18,7 +18,8 @@ extern "C" struct run_state * r_init()
   
   global_state = state;
   signal(SIGTERM, signalHandler);
-  
+
+  state->disp=new CImgDisplay(512,512,"Hello");
   return state;
 }
 
@@ -31,7 +32,7 @@ extern "C" void r_reload(struct run_state *state)
   const unsigned char white[] = {255,255,255};
   state->img->draw_text(80,80,"Hello World",white);
   
-  state->disp=new CImgDisplay(512,512,"Hello");
+  
   state->img->display(state->disp[0]);
 }
 
@@ -49,7 +50,8 @@ extern "C" int r_step(struct run_state *state)
   //a.fill(32).noise(128).blur(8);
   const unsigned char white[] = {255,255,255};
   char s[100];
-  snprintf(s,100,"hello %d",state->count);
+  snprintf(s,100,"11 Hello %d",state->count);
+  state->img->fill(32);
   state->img->draw_text(80,80,s,white);
 
   state->count++;
@@ -76,14 +78,14 @@ extern "C" int r_step(struct run_state *state)
 
 extern "C" void r_unload(struct run_state *state)
 {
-  delete state->disp;
+  
   delete state->img;
 }
 
 extern "C" void r_finalize(struct run_state *state)
 {
   r_unload(state);
-  
+  delete state->disp;
   free(state);
 }
 
