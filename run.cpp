@@ -32,8 +32,11 @@ extern "C" void r_reload(struct run_state *state)
   state->img->draw_text(80,80,"Hello World",white);
   
   state->disp=new CImgDisplay(512,512,"Hello");
-  
+  state->img->display(state->disp[0]);
 }
+
+// assign forces deallocation
+// CImgDisplay has its own pixel buffer
 
 extern "C" int r_step(struct run_state *state)
 {
@@ -42,17 +45,17 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  CImg<unsigned char> a(512,512,1,3);
-  a.fill(32).noise(128).blur(8);
+  //CImg<unsigned char> a(512,512,1,3);
+  //a.fill(32).noise(128).blur(8);
   const unsigned char white[] = {255,255,255};
   char s[100];
   snprintf(s,100,"hello %d",state->count);
-  a.draw_text(80,80,s,white);
+  state->img->draw_text(80,80,s,white);
 
   state->count++;
 
-  state->disp->assign(a);
-  //  state->disp->wait();
+  state->img->display(state->disp[0]);
+  state->disp->wait(20);
   //  CImg<float>=
 
   //CImgList<float> F = img.get_FFT();
