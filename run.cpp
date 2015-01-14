@@ -52,7 +52,7 @@ extern "C" int r_step(struct run_state *state)
   state->count++;
 
   state->disp->assign(a);
-  state->disp->wait();
+  //  state->disp->wait();
   //  CImg<float>=
 
   //CImgList<float> F = img.get_FFT();
