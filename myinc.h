@@ -23,7 +23,7 @@ using namespace cimg_library;
 extern "C" struct run_state{
   int count;
   CImgDisplay *disp;
-  CImg<unsigned char> *img;
+  CImg<float> *img;
 };
 
 extern "C" void r_finalize(struct run_state *state);

@@ -22,15 +22,29 @@ extern "C" struct run_state * r_init()
   state->disp=new CImgDisplay(512,512,"Hello");
   return state;
 }
+// https://www.haskell.org/haskellwiki/Sinc_function
+// http://www.boost.org/boost/math/special_functions/sinc.hpp
+// i have to get used to boost, i guess
+float sinc(float x)
+{
+  if(fabs(x) <= 1e-8){
+    float x2=x*x;
+    return 1-x2/6+x2*x2/120;
+  }
+  return sin(x)/x;
+}
 
 extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
 
-  state->img = new CImg<unsigned char>(512,512,1,3);
-  state->img->fill(32).noise(128).blur(8);
-  const unsigned char white[] = {255,255,255};
-  state->img->draw_text(80,80,"Hello World",white);
+  state->img = new CImg<float>(128,128);
+  CImg<float> &im = state->img[0]; 
+  int x0=im.dimx()/2,y0=im.dimy()/2,z0=im.dimz()/2;
+  cimg_forXYZ(im,x,y,z){
+    im(x,y,z) = sinc(sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0)+(z-z0)*(z-z0)));
+  }
+
   
   
   state->img->display(state->disp[0]);
@@ -46,17 +60,16 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  //CImg<unsigned char> a(512,512,1,3);
-  //a.fill(32).noise(128).blur(8);
+  CImg<unsigned char> a(512,512,1,3);
+  a.fill(32);
   const unsigned char white[] = {255,255,255};
   char s[100];
-  snprintf(s,100,"11 Hello %d",state->count);
-  state->img->fill(32);
-  state->img->draw_text(80,80,s,white);
+  snprintf(s,100,"Hello %d",state->count);
+  a.draw_text(80,80,s,white);
 
   state->count++;
 
-  state->img->display(state->disp[0]);
+  a.display(state->disp[0]);
   state->disp->wait(20);
   //  CImg<float>=
 
