@@ -7,7 +7,7 @@ LDLIBS_MAIN=-ldl
 LDFLAGS=
 LDLIBS=
 
-all: main librun-help.so
+all: main librun1.so
 
 main: main.c api.h
 	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS_MAIN)
@@ -33,6 +33,9 @@ librun-help.so: api.h myinc.h.gch run.o
 	killall -s SIGUSR2 main; \
 	fi;
 
+librun1.so: api.h myinc.h.gch run.o 
+	$(CXX) $(CXXFLAGS) -shared  $(LDFLAGS) -o librun1.so run.o $(LDLIBS) -lX11 -lfftw3_threads -lfftw3 -lfftw3f -lfftw3f_threads
+	killall -s SIGUSR1 main
 
 
 clean:
