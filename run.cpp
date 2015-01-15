@@ -52,7 +52,7 @@ extern "C" void r_reload(struct run_state *state)
     hz0=float(im.depth()/2);
   cimg_forXYZ(im,x,y,z){
     float a=x-hx0,b=y-hy0,c=z-hz0;
-    im(x,y,z) = sinc(2*M_PI*.45*sqrt(a*a+b*b+c*c));
+    im(x,y,z) = sinc(2*M_PI*.12*sqrt(a*a+b*b+c*c));
   }
 
 
@@ -68,9 +68,15 @@ extern "C" void r_reload(struct run_state *state)
 
   im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
   F = im.get_FFT(true);
-  cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
-  im.assign(F[0]);
-  im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
+  cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+  im.assign(F[0]); // this is the 4pi asf
+  
+  im.assign(im.abs().mul(im.abs())); // calculate psf
+
+  //F = im.get_FFT();
+  //cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+  //im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()); // this is the 4pi otf
+  
   im.normalize(0,255);
   
   cimg_forZ(im,z){
@@ -103,10 +109,17 @@ extern "C" int r_step(struct run_state *state)
   snprintf(s,100,"HBlaell %d",state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
+  static int z=64;
+  if(state->disp->key()==cimg::keyN)
+    z++;
+  if(state->disp->key()==cimg::keyP)
+    z--;
 
-
-  state->img[0].get_slice(state->count%state->img[0].depth()).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
-  state->disp->wait(20);
+  //state->img[0].get_slice(z%state->img[0].depth()).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
+  int y = z%state->img[0].height();
+  state->img[0].get_crop(0,z,0,0,
+			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
+  state->disp->wait(30);
   //  CImg<float>=
 
   //CImgList<float> F = img.get_FFT();
