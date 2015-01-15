@@ -10,9 +10,15 @@ extern "C" void signalHandler(int a)
   r_finalize(global_state);
 }
 
+//int fftw_init_threads(void);
+//void fftw_plan_with_nthreads(int nthreads);
+
   
 extern "C" struct run_state * r_init()
 {
+
+  fftw_init_threads();
+  fftw_plan_with_nthreads(4);
   struct run_state *state = (run_state*)malloc(sizeof(*state));
   state->count = 0;  
   
@@ -48,13 +54,23 @@ extern "C" void r_reload(struct run_state *state)
     float a=x-hx0,b=y-hy0,c=z-hz0;
     im(x,y,z) = sinc(2*M_PI*.45*sqrt(a*a+b*b+c*c));
   }
+
+
   im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
   CImgList<float> F = im.get_FFT();
   cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
+
   // //	cout << "min " << ((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log().min()
   // //     << " max "  << (((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()*-1).min()*-1 << endl;
   //CImg<float> fmag = ((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).blur_median(3).log().normalize(0,255);
   im.assign(F[0]);
+  im.get_shared_slices(hz0-30,hz0+30).fill(0.0f); // delete the very high angles
+
+  im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
+  F = im.get_FFT(true);
+  cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
+  im.assign(F[0]);
+  im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
   im.normalize(0,255);
   
   cimg_forZ(im,z){
