@@ -1,5 +1,5 @@
 CFLAGS=-ggdb -Wall -Wextra -O2 -march=native -pedantic  -fPIC -D_BSD_SOURCE -std=c99
-CXXFLAGS= -O2 -march=native -fPIC -Dcimg_use_fftw3 
+CXXFLAGS= -O0 -march=native -fPIC -Dcimg_use_fftw3 
 
 # -fuse-cxa-atexit
 

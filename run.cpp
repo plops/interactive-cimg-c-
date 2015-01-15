@@ -38,7 +38,7 @@ extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
 
-  state->img = new CImg<float>(128,128);
+  state->img = new CImg<float>(128,128,128);
   CImg<float> &im = state->img[0]; 
   float
     hx0=float(im.width()/2),
@@ -47,6 +47,13 @@ extern "C" void r_reload(struct run_state *state)
   cimg_forXYZ(im,x,y,z){
     float a=x-hx0,b=y-hy0,c=z-hz0;
     im(x,y,z) = sinc(sqrt(a*a+b*b+c*c));
+  }
+  im.normalize(0,255);
+  cimg_forZ(im,z){
+    const unsigned char white[] = {255,255,255};
+    char s[100];
+    snprintf(s,100,"z=%d",z);
+    im.get_shared_slice(z).draw_text(20,40,s,white);
   }
 
   
@@ -68,12 +75,13 @@ extern "C" int r_step(struct run_state *state)
   a.fill(32);
   const unsigned char white[] = {255,255,255};
   char s[100];
-  snprintf(s,100,"Hello %d",state->count);
+  state->count++;
+  snprintf(s,100,"HBlaell %d",state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
-  state->count++;
 
-  state->img[0].get_shared_slice(state->count%state->img[0].depth()).display(state->disp[0]);
+
+  state->img[0].get_slice(state->count%state->img[0].depth()).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
   state->disp->wait(20);
   //  CImg<float>=
 
