@@ -46,7 +46,8 @@ extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
 
-  state->img = new CImg<float>(128,128,128);
+  const int N=128;
+  state->img = new CImg<float>(N,N,N);
   CImg<float> &im = state->img[0]; 
   float
     hx0=float(im.width()/2),
@@ -64,8 +65,9 @@ extern "C" void r_reload(struct run_state *state)
     cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
     
     im.assign(F[0]); // now im contains a spherical shell
-    
-    im.get_shared_slices(hz0-5,hz0+5).fill(0.0f); // delete the very high angles
+
+    int gap = int(5/128.0*N);
+    im.get_shared_slices(hz0-gap,hz0+gap).fill(0.0f); // delete the very high angles
   }
   
   if(1){
@@ -74,15 +76,18 @@ extern "C" void r_reload(struct run_state *state)
     cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
     //im.assign(F[0]); // this is the 4pi asf
     
-    im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf
+    im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf (of the intensity in the focal plane)
+    im.assign(im.get_pow(2)); // this is the 4pi psf (on the camera, assuming lambda_ex = lambda_em)
+    
     //  im.assign(im.abs().mul(im.abs())); // calculate psf
   }
 
   if(1){
     F = im.get_FFT();
     cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-    im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()); // this is the 4pi otf
+    im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + .0001).pow(.000001)); // this is the 4pi otf
   }
+  
   im.normalize(0,255);
 
   if(0)
@@ -105,8 +110,8 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  
-  static int z=64;
+  CImg<float> &im = state->img[0];   
+  static int z=float(im.depth()/2);
   if(state->disp->key()==cimg::keyN)
     z++;
   if(state->disp->key()==cimg::keyP)
@@ -127,7 +132,7 @@ extern "C" int r_step(struct run_state *state)
 
 
   //(state->img[0]<'y')[y].display(state->disp[0]);
-  CImg<float> &im = state->img[0]; 
+
   CImg<float> xz(im.width(),im.depth());
   cimg_forXY(xz,x,z){
     xz(x,z) = im(x,y,z);
