@@ -20,7 +20,7 @@ extern "C" struct run_state * r_init()
   fftw_init_threads();
   int n=cimg::nb_cpus();
   fftw_plan_with_nthreads(n);
-  std::cout << "initialized fftw for " << n << " cpus."<< std::cinendl;
+  std::cout << "initialized fftw for " << n << " cpus."<< std::endl;
   struct run_state *state = (run_state*)malloc(sizeof(*state));
   state->count = 0;  
   
@@ -107,6 +107,7 @@ extern "C" int r_step(struct run_state *state)
     z++;
   if(state->disp->key()==cimg::keyP)
     z--;
+  state->disp->set_key(); // flush all key events
 
   
   CImg<unsigned char> a(512,512,1,3);
@@ -117,11 +118,13 @@ extern "C" int r_step(struct run_state *state)
   snprintf(s,100,"%d %d",z,state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
-  //state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
-  int y = z%state->img[0].height();
+  state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
+  //int y = z%state->img[0].height();
   //state->img[0].get_crop(0,z,0,0,
   //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
+  state->disp->wait();
   state->disp->wait(64);
+
   //  CImg<float>=
 
   //CImgList<float> F = img.get_FFT();
