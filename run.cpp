@@ -18,7 +18,9 @@ extern "C" struct run_state * r_init()
 {
 
   fftw_init_threads();
-  fftw_plan_with_nthreads(4);
+  int n=cimg::nb_cpus();
+  fftw_plan_with_nthreads(n);
+  std::cout << "initialized fftw for " << n << " cpus."<< std::cinendl;
   struct run_state *state = (run_state*)malloc(sizeof(*state));
   state->count = 0;  
   
@@ -62,7 +64,7 @@ extern "C" void r_reload(struct run_state *state)
 
   im.assign(F[0]); // now im contains a spherical shell
   
-  im.get_shared_slices(hz0-30,hz0+30).fill(0.0f); // delete the very high angles
+  im.get_shared_slices(0,hz0-30).fill(0.0f); // delete the very high angles
 
   im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
   F = im.get_FFT(true);
@@ -115,7 +117,7 @@ extern "C" int r_step(struct run_state *state)
   snprintf(s,100,"%d %d",z,state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
-  state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
+  //state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
   int y = z%state->img[0].height();
   //state->img[0].get_crop(0,z,0,0,
   //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
