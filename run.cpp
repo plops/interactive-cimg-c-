@@ -54,31 +54,35 @@ extern "C" void r_reload(struct run_state *state)
     hz0=float(im.depth()/2);
   cimg_forXYZ(im,x,y,z){
     float a=x-hx0,b=y-hy0,c=z-hz0;
-    im(x,y,z) = sinc(2*M_PI*.42*sqrt(a*a+b*b+c*c));
+    im(x,y,z) = sinc(2*M_PI*.12*sqrt(a*a+b*b+c*c));
   }
-
-
+  
   im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
   CImgList<float> F = im.get_FFT(); 
-  cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
 
-  im.assign(F[0]); // now im contains a spherical shell
+  {
+    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
+    
+    im.assign(F[0]); // now im contains a spherical shell
+    
+    im.get_shared_slices(hz0-5,hz0+5).fill(0.0f); // delete the very high angles
+  }
   
-  im.get_shared_slices(0,hz0+30).fill(0.0f); // delete the very high angles
+  if(1){
+    im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
+    F = im.get_FFT(true);
+    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+    //im.assign(F[0]); // this is the 4pi asf
+    
+    im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf
+    //  im.assign(im.abs().mul(im.abs())); // calculate psf
+  }
 
-  //im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
-  //F = im.get_FFT(true);
-  //cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-  //im.assign(F[0]); // this is the 4pi asf
-
-  //im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf
-  //  im.assign(im.abs().mul(im.abs())); // calculate psf
-  
-  
-  //F = im.get_FFT();
-  //cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-  //im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()); // this is the 4pi otf
-  
+  if(1){
+    F = im.get_FFT();
+    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+    im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()); // this is the 4pi otf
+  }
   im.normalize(0,255);
 
   if(0)
