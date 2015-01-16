@@ -118,12 +118,21 @@ extern "C" int r_step(struct run_state *state)
   snprintf(s,100,"%d %d",z,state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
-  state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
-  //int y = z%state->img[0].height();
+  //state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
+
+  int y = z%state->img[0].height();
+  //(state->img[0]<'y')[y].display(state->disp[0]);
+  CImg<float> &im = state->img[0]; 
+  CImg<float> xz(im.width(),im.depth());
+  cimg_forXY(xz,x,z){
+    xz(x,z) = im(x,y,z);
+  }
+  
+  xz.display(state->disp[0]);
   //state->img[0].get_crop(0,z,0,0,
   //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
   state->disp->wait();
-  state->disp->wait(64);
+  state->disp->wait(32);
 
   //  CImg<float>=
 
