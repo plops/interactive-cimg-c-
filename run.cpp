@@ -54,7 +54,7 @@ extern "C" void r_reload(struct run_state *state)
     hz0=float(im.depth()/2);
   cimg_forXYZ(im,x,y,z){
     float a=x-hx0,b=y-hy0,c=z-hz0;
-    im(x,y,z) = sinc(2*M_PI*.12*sqrt(a*a+b*b+c*c));
+    im(x,y,z) = sinc(2*M_PI*.42*sqrt(a*a+b*b+c*c));
   }
 
 
@@ -64,12 +64,12 @@ extern "C" void r_reload(struct run_state *state)
 
   im.assign(F[0]); // now im contains a spherical shell
   
-  im.get_shared_slices(0,hz0-30).fill(0.0f); // delete the very high angles
+  im.get_shared_slices(0,hz0+30).fill(0.0f); // delete the very high angles
 
-  im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
-  F = im.get_FFT(true);
-  cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-  im.assign(F[0]); // this is the 4pi asf
+  //im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
+  //F = im.get_FFT(true);
+  //cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+  //im.assign(F[0]); // this is the 4pi asf
 
   //im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf
   //  im.assign(im.abs().mul(im.abs())); // calculate psf
@@ -115,12 +115,13 @@ extern "C" int r_step(struct run_state *state)
   const unsigned char white[] = {255,255,255};
   char s[100];
   state->count++;
-  snprintf(s,100,"%d %d",z,state->count%state->img[0].depth());
+  int y = z%state->img[0].height();
+  snprintf(s,100,"%d %d",y,state->count%state->img[0].depth());
   a.draw_text(80,80,s,white);
 
   //state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
 
-  int y = z%state->img[0].height();
+
   //(state->img[0]<'y')[y].display(state->disp[0]);
   CImg<float> &im = state->img[0]; 
   CImg<float> xz(im.width(),im.depth());
@@ -128,7 +129,7 @@ extern "C" int r_step(struct run_state *state)
     xz(x,z) = im(x,y,z);
   }
   
-  xz.display(state->disp[0]);
+  xz.draw_text(4,90,s,white).display(state->disp[0]);
   //state->img[0].get_crop(0,z,0,0,
   //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
   state->disp->wait();
