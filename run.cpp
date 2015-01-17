@@ -1,5 +1,5 @@
 #include "myinc.h"
-
+#include "run.h"
 #include <complex>
 
 struct run_state * global_state;
@@ -71,65 +71,87 @@ complex<float> gaussian_shell2(float lambda, float lc, float r1, float r2, float
   float r1pr22=pow(r1+r2,2), r1mr22=pow(r1-r2,2), wz=beam_waist(lambda,lc,w0,z),
     wz2=wz*wz, lc2=lc*lc, w02=w0*w0, k=2*M_PI/lambda;
   std::complex<float> im(0,1);
-  return w02/wz2+exp(-r1pr22/(2*wz2))+exp(-w02*r1mr22/(2*lc2*wz2))+exp(-im*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
+  std::complex<float> res = w02/wz2*exp(-r1pr22/(2*wz2))*exp(-w02*r1mr22/(2*lc2*wz2));
+  if(abs(z)<1e-8)
+    return res;
+  return res*exp(-im*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
 }
 
 
 extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
-
-  const int N=64;
-  state->img = new CImg<float>(N,N,N);
-  CImg<float> &im = state->img[0]; 
-  float
-    hx0=float(im.width()/2),
-    hy0=float(im.height()/2),
-    hz0=float(im.depth()/2);
-  cimg_forXYZ(im,x,y,z){
-    float a=x-hx0,b=y-hy0,c=z-hz0;
-    im(x,y,z) = sinc(2*M_PI*.12*sqrt(a*a+b*b+c*c));
+  
+  const int N=256;
+  state->img = new CImgList<float>(2,N,N);
+  CImgList<float> &im = state->img[0]; 
+  const float lambda = 1, lc = 2000, w0 = 2000, z = 0.1;
+  cimg_forXY(im[0],x,y){
+    float xx = 12000*(x*1.0f/N-.5), yy = 12000*(y*1.0f/N-.5),wx = .5*(xx+yy),wxprime=xx-yy;
+    complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
+    im[0](x,y) = val.real();
+    im[1](x,y) = val.imag();
   }
   
-  im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
-  CImgList<float> F = im.get_FFT(); 
+  // if(0){
+  //   const int N=64;
+  //   state->img = new CImg<float>(N,N,N);
+  //   CImg<float> &im = state->img[0]; 
+  //   float
+  //     hx0=float(im.width()/2),
+  //     hy0=float(im.height()/2),
+  //     hz0=float(im.depth()/2);
 
-  {
-    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
+  //   if(0){
+  //     cimg_forXYZ(im,x,y,z){
+  // 	float a=x-hx0,b=y-hy0,c=z-hz0;
+  // 	im(x,y,z) = sinc(2*M_PI*.12*sqrt(a*a+b*b+c*c));
+  //     }
+  //   }
     
-    im.assign(F[0]); // now im contains a spherical shell
-
-    int gap = int(5/128.0*N);
-    im.get_shared_slices(hz0-gap,hz0+gap).fill(0.0f); // delete the very high angles
-  }
   
-  if(1){
-    im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
-    F = im.get_FFT(true);
-    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-    //im.assign(F[0]); // this is the 4pi asf
-    
-    im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf (of the intensity in the focal plane)
-    //im.assign(im.get_pow(2)); // this is the 4pi psf (on the camera, assuming lambda_ex = lambda_em)
-    
-    //  im.assign(im.abs().mul(im.abs())); // calculate psf
-  }
+  //   if(0) {
+  //     im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2);
+  //     CImgList<float> F = im.get_FFT(); 
 
-  if(1){
-    F = im.get_FFT();
-    cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
-    im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + .0001).pow(.000001)); // this is the 4pi otf
-  }
+  //     {
+  // 	cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2);
+	
+  // 	im.assign(F[0]); // now im contains a spherical shell
+	
+  // 	int gap = int(5/128.0*N);
+  // 	im.get_shared_slices(hz0-gap,hz0+gap).fill(0.0f); // delete the very high angles
+  //     }
+      
+  //     if(1){
+  // 	im.shift(im.width()/2,im.height()/2,im.depth()/2,0,2); // prepare inverse fft
+  // 	F = im.get_FFT(true);
+  // 	cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+  // 	//im.assign(F[0]); // this is the 4pi asf
+      
+  // 	im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf (of the intensity in the focal plane)
+  // 	//im.assign(im.get_pow(2)); // this is the 4pi psf (on the camera, assuming lambda_ex = lambda_em)
+	
+  // 	//  im.assign(im.abs().mul(im.abs())); // calculate psf
+  //     }
+      
+  //     if(1){
+  // 	F = im.get_FFT();
+  // 	cimglist_apply(F,shift)(im.width()/2,im.height()/2,im.depth()/2,0,2); // center asf
+  // 	im.assign(((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + .0001).pow(.000001)); // this is the 4pi otf
+  //     }
+  //   }
+  // }
   
-  im.normalize(0,255);
+  //   im.normalize(0,255);
 
-  if(0)
-    cimg_forZ(im,z){
-      const unsigned char white[] = {255,255,255};
-      char s[100];
-      snprintf(s,100,"z=%d",z);
-      im.get_shared_slice(z).draw_text(20,40,s,white);
-    }
+  // if(0)
+  //   cimg_forZ(im,z){
+  //     const unsigned char white[] = {255,255,255};
+  //     char s[100];
+  //     snprintf(s,100,"z=%d",z);
+  //     im.get_shared_slice(z).draw_text(20,40,s,white);
+  //   }
   state->img->display(state->disp[0]);
 }
 
@@ -143,53 +165,29 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  CImg<float> &im = state->img[0];   
-  static int z=float(im.depth()/2);
+  CImgList<float> &im = state->img[0];   
+
+  static int z=0; //float(im.depth()/2);
   if(state->disp->key()==cimg::keyN)
     z++;
   if(state->disp->key()==cimg::keyP)
     z--;
   state->disp->set_key(); // flush all key events
 
+
+  im.display(state->disp[0]);
   
-  CImg<unsigned char> a(512,512,1,3);
-  a.fill(32);
-  const unsigned char white[] = {255,255,255};
-  char s[100];
-  state->count++;
-  int y = z%state->img[0].height();
-  snprintf(s,100,"%d %d",y,state->count%state->img[0].depth());
-  a.draw_text(80,80,s,white);
-
-  //state->img[0].get_slice(z%state->img[0].depth()).draw_text(4,90,s,white).display(state->disp[0]);
-
-
-  //(state->img[0]<'y')[y].display(state->disp[0]);
-
-  CImg<float> xz(im.width(),im.depth());
-  cimg_forXY(xz,x,z){
-    xz(x,z) = im(x,y,z);
-  }
+  // CImg<float> xz(im.width(),im.depth());
+  // cimg_forXY(xz,x,z){
+  //   xz(x,z) = im(x,y,z);
+  // }
   
-  xz.draw_text(4,90,s,white).display(state->disp[0]);
-  //state->img[0].get_crop(0,z,0,0,
-  //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
+  // xz.draw_text(4,90,s,white).display(state->disp[0]);
+  // //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
+  
+
   state->disp->wait();
   state->disp->wait(32);
-
-  //  CImg<float>=
-
-  //CImgList<float> F = img.get_FFT();
-  //cimglist_apply(F,shift)(img.width()/2,img.height()/2,0,0,2);
-  // //	cout << "min " << ((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log().min()
-  // //     << " max "  << (((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).log()*-1).min()*-1 << endl;
-  //CImg<float> fmag = ((F[0].get_pow(2) + F[1].get_pow(2)).sqrt() + 1).blur_median(3).log().normalize(0,255);
-  
-  //cimg_rof(fmag,p,float) {
-  //  const float m=8.3f, M=14.0f;
-  //  float v = (float) 255.0f*(*p-m)/(M-m);
-  //  *p = (v<0.0f)?0.0f:(v>255.0)?255.0:v;
-  //};
   
   return 1; 
 }
