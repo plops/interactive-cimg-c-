@@ -44,7 +44,7 @@ float sinc(float x)
   return sin(x)/x;
 }
 
-inline float 1_wc2(float lc,float w0)
+inline float over_wc2(float lc,float w0)
 {
   return 1/(w0*w0)+1/(lc*lc); 
 }
@@ -56,7 +56,7 @@ inline float wc(float lc,float w0)
 
 inline float beam_waist(float lambda,float lc,float w0, float z)
 {
-  return w0*sqrt(1+pow((lambda*z)/(M_PI*w0),2)*1_wc2(lc,w0));
+  return w0*sqrt(1+pow((lambda*z)/(M_PI*w0),2)*over_wc2(lc,w0));
 }
 
 inline float curvature(float lambda, float lc, float w0, float z)
@@ -70,7 +70,8 @@ complex<float> gaussian_shell2(float lambda, float lc, float r1, float r2, float
 {
   float r1pr22=pow(r1+r2,2), r1mr22=pow(r1-r2,2), wz=beam_waist(lambda,lc,w0,z),
     wz2=wz*wz, lc2=lc*lc, w02=w0*w0, k=2*M_PI/lambda;
-  return w02/wz2+exp(-r1pr22/(2*wz2))+exp(-w02*r1mr22/(2*lc2*wz2))+exp(-1i*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
+  std::complex<float> im(0,1);
+  return w02/wz2+exp(-r1pr22/(2*wz2))+exp(-w02*r1mr22/(2*lc2*wz2))+exp(-im*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
 }
 
 
