@@ -1,5 +1,7 @@
 #include "myinc.h"
 
+#include <complex>
+
 struct run_state * global_state;
 
 const int w=512,h=512;
@@ -42,11 +44,41 @@ float sinc(float x)
   return sin(x)/x;
 }
 
+inline float 1_wc2(float lc,float w0)
+{
+  return 1/(w0*w0)+1/(lc*lc); 
+}
+
+inline float wc(float lc,float w0)
+{
+  return sqrt(1/(1/(w0*w0)+1/(lc*lc))); 
+}
+
+inline float beam_waist(float lambda,float lc,float w0, float z)
+{
+  return w0*sqrt(1+pow((lambda*z)/(M_PI*w0),2)*1_wc2(lc,w0));
+}
+
+inline float curvature(float lambda, float lc, float w0, float z)
+{
+  return z*(1+pow(M_PI*w0*wc(lc,w0)/(lambda*z),2));
+}
+
+
+// 1982 friberg prop param gaussian shell beam
+complex<float> gaussian_shell2(float lambda, float lc, float r1, float r2, float w0, float z)
+{
+  float r1pr22=pow(r1+r2,2), r1mr22=pow(r1-r2,2), wz=beam_waist(lambda,lc,w0,z),
+    wz2=wz*wz, lc2=lc*lc, w02=w0*w0, k=2*M_PI/lambda;
+  return w02/wz2+exp(-r1pr22/(2*wz2))+exp(-w02*r1mr22/(2*lc2*wz2))+exp(-1i*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
+}
+
+
 extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
 
-  const int N=128;
+  const int N=64;
   state->img = new CImg<float>(N,N,N);
   CImg<float> &im = state->img[0]; 
   float
@@ -77,7 +109,7 @@ extern "C" void r_reload(struct run_state *state)
     //im.assign(F[0]); // this is the 4pi asf
     
     im.assign(F[0].get_pow(2) + F[1].get_pow(2)); // this is the 4pi psf (of the intensity in the focal plane)
-    im.assign(im.get_pow(2)); // this is the 4pi psf (on the camera, assuming lambda_ex = lambda_em)
+    //im.assign(im.get_pow(2)); // this is the 4pi psf (on the camera, assuming lambda_ex = lambda_em)
     
     //  im.assign(im.abs().mul(im.abs())); // calculate psf
   }
