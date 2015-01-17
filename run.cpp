@@ -82,16 +82,23 @@ extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
   
-  const int N=256;
+  const int N=128;
   state->img = new CImgList<float>(2,N,N);
   CImgList<float> &im = state->img[0]; 
-  const float lambda = 1, lc = 2000, w0 = 2000, z = 0.1;
+  const float lambda = .5, lc = 2000, w0 = 2000, z = 0.1;
   cimg_forXY(im[0],x,y){
-    float xx = 12000*(x*1.0f/N-.5), yy = 12000*(y*1.0f/N-.5),wx = .5*(xx+yy),wxprime=xx-yy;
+    float xx = 32000*(x*1.0f/N-.5), yy = 32000*(y*1.0f/N-.5),wx = .5*(xx+yy),wxprime=xx-yy;
     complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
     im[0](x,y) = val.real();
     im[1](x,y) = val.imag();
   }
+  
+  cimglist_apply(im,shift)(0,im[0].height()/2,0,0,2);
+  CImgList<float> F = im.get_FFT('y');
+
+  cimglist_apply(F,shift)(0,im[0].height()/2,0,0,2);
+  
+  im.assign(F);
   
   // if(0){
   //   const int N=64;
@@ -153,6 +160,7 @@ extern "C" void r_reload(struct run_state *state)
   //     im.get_shared_slice(z).draw_text(20,40,s,white);
   //   }
   state->img->display(state->disp[0]);
+  CImgDisplay disp(100,100,"First display");
 }
 
 // assign forces deallocation
@@ -173,7 +181,7 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->key()==cimg::keyP)
     z--;
   state->disp->set_key(); // flush all key events
-
+  
 
   im.display(state->disp[0]);
   
