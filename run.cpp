@@ -84,21 +84,31 @@ extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
   
-  const int N=128;
+  const int N=512;
   state->img = new CImgList<float>(2,N,N);
   CImgList<float> &im = state->img[0]; 
   const float lambda = .5, lc = 2000, w0 = 2000, z = 0.1;
+  complex<float> transmission[N];
+  std::complex<float> imag(0,1);
+  float pi = atan2f(0,-1);
+  for(int i;i<N;i++)
+    transmission[i] = exp(imag*pi*(((i%16)>8)?1.0f:0.0f));
   cimg_forXY(im[0],x,y){
-    float xx = 32000*(x*1.0f/N-.5), yy = 32000*(y*1.0f/N-.5),wx = .5*(xx+yy),wxprime=xx-yy;
+    float xx = 32000*((x-N/2)*1.0f/N), yy = 32000*((y-N/2)*1.0f/N),wx = .5*(xx+yy),wxprime=xx-yy;
     complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
+    val *= transmission[x]*conj(transmission[y]);
     im[0](x,y) = val.real();
     im[1](x,y) = val.imag();
   }
   
   cimglist_apply(im,shift)(0,im[0].height()/2,0,0,2);
+  //cimglist_apply(im,shift)(im[0].width()/2,0,0,0,2);
+  //cimglist_apply(im,shift)(im[0].width()/2,im[0].height()/2,0,0,2);
   CImgList<float> F = im.get_FFT('y');
 
   cimglist_apply(F,shift)(0,im[0].height()/2,0,0,2);
+  //cimglist_apply(F,shift)(im[0].width()/2,0,0,0,2);
+  //cimglist_apply(F,shift)(im[0].width()/2,im[0].height()/2,0,0,2);
   
   im.assign(F);
   
@@ -162,7 +172,7 @@ extern "C" void r_reload(struct run_state *state)
   //     im.get_shared_slice(z).draw_text(20,40,s,white);
   //   }
 
-  // im.display(state->disp[0]);
+  //im.display(state->disp[0]);
   im[0].select(state->disp[0]);
 
   // selecting rectangle with mouse moves in, clicking again moves out again
