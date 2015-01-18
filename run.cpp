@@ -162,9 +162,23 @@ extern "C" void r_reload(struct run_state *state)
   //     im.get_shared_slice(z).draw_text(20,40,s,white);
   //   }
 
-  state->disp[0] = im.display();
-  //  state->img->display(state->disp[0]);
+  // im.display(state->disp[0]);
+  im[0].select(state->disp[0]);
 
+  // selecting rectangle with mouse moves in, clicking again moves out again
+  // C-left C-right moves around
+  // C-pageup or down
+  // C-a assign
+  // C-d zoom 2x
+  // C-c zoom .5x
+  // C-r reset zoom 
+  // C-f fullscreen (i don't know how to get rid of it)
+  // C-v ?
+  // C-s save BMP screenshot
+  // C-0 save cimgz screenshot
+  // mouse wheel or C-left right moves through slices of volume
+  // right button zoom
+  // middle button shift
 }
 
 // assign forces deallocation
