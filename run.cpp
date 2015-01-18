@@ -2,6 +2,8 @@
 #include "run.h"
 #include <complex>
 
+// _get_select is the function printing stuff about a pixel under the cursor in CImgDisplay
+
 struct run_state * global_state;
 
 const int w=512,h=512;
@@ -29,7 +31,7 @@ extern "C" struct run_state * r_init()
   global_state = state;
   signal(SIGTERM, signalHandler);
 
-  state->disp=new CImgDisplay(512,512,"Hello");
+  //state->disp=new CImgDisplay(512,512,"Hello");
   return state;
 }
 // https://www.haskell.org/haskellwiki/Sinc_function
@@ -159,8 +161,10 @@ extern "C" void r_reload(struct run_state *state)
   //     snprintf(s,100,"z=%d",z);
   //     im.get_shared_slice(z).draw_text(20,40,s,white);
   //   }
-  state->img->display(state->disp[0]);
-  CImgDisplay disp(100,100,"First display");
+
+  state->disp[0] = im.display();
+  //  state->img->display(state->disp[0]);
+
 }
 
 // assign forces deallocation
@@ -183,7 +187,7 @@ extern "C" int r_step(struct run_state *state)
   state->disp->set_key(); // flush all key events
   
 
-  im.display(state->disp[0]);
+  //im.display(state->disp[0]);
   
   // CImg<float> xz(im.width(),im.depth());
   // cimg_forXY(xz,x,z){
