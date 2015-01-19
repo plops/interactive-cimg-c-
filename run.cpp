@@ -31,7 +31,7 @@ extern "C" struct run_state * r_init()
   global_state = state;
   signal(SIGTERM, signalHandler);
 
-  //state->disp=new CImgDisplay(512,512,"Hello");
+  state->disp=new CImgDisplay(512,512,"Hello");
   return state;
 }
 // https://www.haskell.org/haskellwiki/Sinc_function
@@ -48,12 +48,16 @@ float sinc(float x)
 
 inline float over_wc2(float lc,float w0)
 {
-  return 1/(w0*w0)+1/(lc*lc); 
+  //  return 1/(w0*w0)+1/(lc*lc); 
+  float lc2=lc*lc, w02=w0*w0;
+  return (w02+lc2)/(lc2*w02);
 }
 
 inline float wc(float lc,float w0)
 {
-  return sqrt(1/(1/(w0*w0)+1/(lc*lc))); 
+  // return sqrt(1/(1/(w0*w0)+1/(lc*lc)));
+  float lc2=lc*lc, w02=w0*w0;
+  return sqrt(lc2*w02/(w02+lc2));
 }
 
 inline float beam_waist(float lambda,float lc,float w0, float z)
@@ -72,8 +76,12 @@ complex<float> gaussian_shell2(float lambda, float lc, float r1, float r2, float
 {
   float r1pr22=pow(r1+r2,2), r1mr22=pow(r1-r2,2), wz=beam_waist(lambda,lc,w0,z),
     wz2=wz*wz, lc2=lc*lc, w02=w0*w0, k=2*M_PI/lambda;
+  float
+    a = w02/wz2,
+    b = exp(-r1pr22/(2*wz2)),
+    c = exp(-w02*r1mr22/(2*lc2*wz2));
   std::complex<float> im(0,1);
-  std::complex<float> res = w02/wz2*exp(-r1pr22/(2*wz2))*exp(-w02*r1mr22/(2*lc2*wz2));
+  std::complex<float> res = a*b*c;
   if(abs(z)<1e-8)
     return res;
   return res*exp(-im*k*r1mr22/(2*curvature(lambda,lc,w0,z)));
@@ -92,23 +100,19 @@ extern "C" void r_reload(struct run_state *state)
   std::complex<float> imag(0,1);
   float pi = atan2f(0,-1);
   for(int i;i<N;i++)
-    transmission[i] = exp(imag*pi*(((i%16)>8)?1.0f:0.0f));
+    transmission[i] = exp(imag*pi*(((i%16)>7)?1.0f:0.0f));
   cimg_forXY(im[0],x,y){
     float xx = 32000*((x-N/2)*1.0f/N), yy = 32000*((y-N/2)*1.0f/N),wx = .5*(xx+yy),wxprime=xx-yy;
-    complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
-    val *= transmission[x]*conj(transmission[y]);
+    complex<float> val=gaussian_shell2(lambda,lc,xx,yy,w0,z);
+    //val *= transmission[x]*conj(transmission[y]);
     im[0](x,y) = val.real();
-    im[1](x,y) = val.imag();
+    im[1](x,y) = 0.0f; // val.imag();
   }
   
   cimglist_apply(im,shift)(0,im[0].height()/2,0,0,2);
-  //cimglist_apply(im,shift)(im[0].width()/2,0,0,0,2);
-  //cimglist_apply(im,shift)(im[0].width()/2,im[0].height()/2,0,0,2);
   CImgList<float> F = im.get_FFT('y');
 
   cimglist_apply(F,shift)(0,im[0].height()/2,0,0,2);
-  //cimglist_apply(F,shift)(im[0].width()/2,0,0,0,2);
-  //cimglist_apply(F,shift)(im[0].width()/2,im[0].height()/2,0,0,2);
   
   im.assign(F);
   
@@ -172,7 +176,7 @@ extern "C" void r_reload(struct run_state *state)
   //     im.get_shared_slice(z).draw_text(20,40,s,white);
   //   }
 
-  //im.display(state->disp[0]);
+  //im[0].display(state->disp[0]);
   im[0].select(state->disp[0]);
 
   // selecting rectangle with mouse moves in, clicking again moves out again
