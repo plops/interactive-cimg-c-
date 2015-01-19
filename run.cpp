@@ -103,7 +103,7 @@ extern "C" void r_reload(struct run_state *state)
     transmission[i] = exp(imag*pi*(((i%16)>7)?1.0f:0.0f));
   cimg_forXY(im[0],x,y){
     float xx = 32000*((x-N/2)*1.0f/N), yy = 32000*((y-N/2)*1.0f/N),wx = .5*(xx+yy),wxprime=xx-yy;
-    complex<float> val=gaussian_shell2(lambda,lc,xx,yy,w0,z);
+    complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
     //val *= transmission[x]*conj(transmission[y]);
     im[0](x,y) = val.real();
     im[1](x,y) = 0.0f; // val.imag();
@@ -177,7 +177,7 @@ extern "C" void r_reload(struct run_state *state)
   //   }
 
   //im[0].display(state->disp[0]);
-  im[0].select(state->disp[0]);
+  im[1].select(state->disp[0]);
 
   // selecting rectangle with mouse moves in, clicking again moves out again
   // C-left C-right moves around
