@@ -39,20 +39,19 @@ extern "C" struct run_state * r_init()
 
 void load_img(unsigned char*from, int w, int h, float*into)
 {
-  int i,j;
+  int i,j,n = w*h;
   // convert mono12p into real part of complex double float
   // i .. index for byte
   // j .. index for 12bit
-  for(i=0,j=0;j< w*h;i+=3,j+=2) {
+  for(i=0,j=0;j< n;i+=3,j+=2) {
     unsigned char 
       ab = from[i],
       c = from[i+1] & 0x0f,
       d = (from[i+1] & 0xf0)>>4,
       ef = from[i+2];
-    into[2*((j%w)+ w * (j/w))] = 1.0f*((ab<<4)+d);
-    into[2*(((j+1)%w)+ w * ((j+1)/w))] = 1.0f*((ef<<4)+c);
+    into[(j%w)+ w * (j/w)] = 1.0f*((ab<<4)+d);
+    into[((j+1)%w)+ w * ((j+1)/w)] = 1.0f*((ef<<4)+c);
   }
-
 }
 
 
@@ -68,15 +67,20 @@ extern "C" void r_reload(struct run_state *state)
   unsigned char*from = (unsigned char*)mmap(0,len,PROT_READ,MAP_SHARED,fd,0);
   if(from==MAP_FAILED)
     cout << "error mapping file" << endl;
+
+  cout << "copying data into image" << endl;
+  //#pragma omp parallel for
   for(int i=0;i<NW;i++)
-    for(int j=0;j<NH;j++)
-      load_img(from,W,H,state->img->data());
-  
+    for(int j=0;j<NH;j++){
+      unsigned long long p = W*H*12/8*(i+NW*j);
+      load_img(from+p,W,H,state->img->data(0,0,i,j));
+    }
   munmap(from,len);
   close(fd);
-  
-  //im[0].display(state->disp[0]);
-  state->img->select(state->disp[0]);
+  cout << "normalize" << endl;
+  //state->img->normalize(0,255);
+  state->img->display(state->disp[0]);
+  //state->img->select(state->disp[0]);
 
   // selecting rectangle with mouse moves in, clicking again moves out again
   // C-left C-right moves around
@@ -105,7 +109,7 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  //CImgList<float> &im = state->img[0];   
+  //CImg<float> &im = state->img;   
 
   static int z=0; //float(im.depth()/2);
   if(state->disp->key()==cimg::keyN)
@@ -113,9 +117,9 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->key()==cimg::keyP)
     z--;
   state->disp->set_key(); // flush all key events
-  
+  cout << state->img[0](1,1,1,1) << endl;
 
-  //im.display(state->disp[0]);
+  state->img->display(state->disp[0]);
   
   // CImg<float> xz(im.width(),im.depth());
   // cimg_forXY(xz,x,z){
@@ -126,8 +130,8 @@ extern "C" int r_step(struct run_state *state)
   // //			 state->img[0].width(),z,state->img[0].depth(),0).normalize(0,255).draw_text(4,90,s,white).display(state->disp[0]);
   
 
-  state->disp->wait();
-  state->disp->wait(32);
+  //state->disp->wait(); // this will wait for an event
+  state->disp->wait(64);
   
   return 1; 
 }
