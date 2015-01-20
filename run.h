@@ -1,7 +1,7 @@
 extern "C" struct run_state{
   int count;
   CImgDisplay *disp;
-  CImgList<float> *img;
+  CImg<float> *img;
 };
 
 extern "C" void r_finalize(struct run_state *state);

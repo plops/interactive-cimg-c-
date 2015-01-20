@@ -1,6 +1,8 @@
 #include "myinc.h"
 #include "run.h"
 #include <complex>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 // _get_select is the function printing stuff about a pixel under the cursor in CImgDisplay
 
@@ -35,37 +37,46 @@ extern "C" struct run_state * r_init()
   return state;
 }
 
+void load_img(unsigned char*from, int w, int h, float*into)
+{
+  int i,j;
+  // convert mono12p into real part of complex double float
+  // i .. index for byte
+  // j .. index for 12bit
+  for(i=0,j=0;j< w*h;i+=3,j+=2) {
+    unsigned char 
+      ab = from[i],
+      c = from[i+1] & 0x0f,
+      d = (from[i+1] & 0xf0)>>4,
+      ef = from[i+2];
+    into[2*((j%w)+ w * (j/w))] = 1.0f*((ab<<4)+d);
+    into[2*(((j+1)%w)+ w * ((j+1)/w))] = 1.0f*((ef<<4)+c);
+  }
+
+}
+
+
 extern "C" void r_reload(struct run_state *state)
 {
   state->count = 0;
   
-  const int W=280, H=280;
-  state->img = new CImgList<float>(2,W,H);
-  CImgList<float> &im = state->img[0]; 
-  const float lambda = .5, lc = 2000, w0 = 2000, z = 0.1;
-  complex<float> transmission[N];
-  std::complex<float> imag(0,1);
-  float pi = atan2f(0,-1);
-  for(int i;i<N;i++)
-    transmission[i] = exp(imag*pi*(((i%16)>7)?1.0f:0.0f));
-  cimg_forXY(im[0],x,y){
-    float xx = 32000*((x-N/2)*1.0f/N), yy = 32000*((y-N/2)*1.0f/N),wx = .5*(xx+yy),wxprime=xx-yy;
-    complex<float> val=gaussian_shell2(lambda,lc,wx,wxprime,w0,z);
-    //val *= transmission[x]*conj(transmission[y]);
-    im[0](x,y) = val.real();
-    im[1](x,y) = 0.0f; // val.imag();
-  }
+  const int W=280, H=280, NW=79, NH=62; 
+  const long long unsigned int len = W*H*NW*NH/8*12;
+  state->img = new CImg<float>(W,H,NW,NH);
+  //CImg<float> &im = state->img; 
+  int fd = open("/media/sdd3/b/cam0",O_RDONLY);
+  unsigned char*from = (unsigned char*)mmap(0,len,PROT_READ,MAP_SHARED,fd,0);
+  if(from==MAP_FAILED)
+    cout << "error mapping file" << endl;
+  for(int i=0;i<NW;i++)
+    for(int j=0;j<NH;j++)
+      load_img(from,W,H,state->img->data());
   
-  cimglist_apply(im,shift)(0,im[0].height()/2,0,0,2);
-  CImgList<float> F = im.get_FFT('y');
-
-  cimglist_apply(F,shift)(0,im[0].height()/2,0,0,2);
+  munmap(from,len);
+  close(fd);
   
-  im.assign(F);
-  
-
   //im[0].display(state->disp[0]);
-  im[1].select(state->disp[0]);
+  state->img->select(state->disp[0]);
 
   // selecting rectangle with mouse moves in, clicking again moves out again
   // C-left C-right moves around
@@ -94,7 +105,7 @@ extern "C" int r_step(struct run_state *state)
   if(state->disp->is_resized())
     state->disp->resize();
 
-  CImgList<float> &im = state->img[0];   
+  //CImgList<float> &im = state->img[0];   
 
   static int z=0; //float(im.depth()/2);
   if(state->disp->key()==cimg::keyN)
